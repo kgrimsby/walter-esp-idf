@@ -1617,9 +1617,12 @@ bool WalterModem::_parseMessage(unsigned char* buffer, uint16_t size, ParsedMess
         } else if (*ptr == ',') {
             ptr++;  // Skip ','
         } else {
+            // Do nothing - messages like "+SQNMONI" contains a full string
+
+            // Old implementation of ignoring these kind of messages
             // Unexpected character
-            ESP_LOGW("WalterModem", "ParseMessage unexpected character");
-            return false;
+            // ESP_LOGW("WalterModem", "ParseMessage unexpected character");
+            //return false;
         }
     }
 
@@ -3041,15 +3044,20 @@ void WalterModem::_processQueueRsp(
                 if(!_mqttRings[ringIdx].messageId) {
                     break;
                 }
-                if(_mqttRings[ringIdx].messageId == messageId) {
+                if(strncmp(topic, _mqttRings[ringIdx].topic, strlen(topic)) == 0 && _mqttRings[ringIdx].messageId == messageId) {
+                    ESP_LOGD("WalterModem", "Found ring for messageId: %i", messageId);
                     break;
                 }
             }
+
+            ESP_LOGD("WalterModem", "MQTT Rings: %i", sizeof(_mqttRings));
 
             if(ringIdx == sizeof(_mqttRings) / sizeof(WalterModemMqttRing)) {
                 /* ring buffer full unfortunately, dropping ring.
                  * TODO: error reporting mechanism for this failed URC
                  */
+                ESP_LOGE("WalterModem", "MQTT ring buffer full");
+
                 buff->free = true;
                 return;
             }
@@ -3956,7 +3964,7 @@ bool WalterModem::begin(uart_port_t uartNo, uint8_t watchdogTimeout)
 
     ESP_LOGI("WalterModem", "Setting up task for modem RX");
     TaskHandle_t rxTask = xTaskCreateStaticPinnedToCore(_handleRxData, "uart_rx_task",
-            WALTER_MODEM_TASK_STACK_SIZE, NULL, tskIDLE_PRIORITY,
+        WALTER_MODEM_TASK_UART_STACK_SIZE, NULL, tskIDLE_PRIORITY,
             _rxTaskStack, &_rxTaskBuf, 0);
     if (rxTask == NULL) {
         ESP_LOGE("WalterModem", "Failed to create RX task");
@@ -4219,6 +4227,7 @@ bool WalterModem::mqttConnect(const char *serverName,
         const char *clientId,
         const char *userName,
         const char *password,
+        uint16_t keepAlive,
         uint8_t tlsProfileId,
         WalterModemRsp *rsp,
         walterModemCb cb,
@@ -4228,7 +4237,7 @@ bool WalterModem::mqttConnect(const char *serverName,
         _returnState(WALTER_MODEM_STATE_ERROR);
     }
 
-    _runCmd(arr("AT+SQNSMQTTCONNECT=0,", _atStr(serverName), ",", _atNum(port)),
+    _runCmd(arr("AT+SQNSMQTTCONNECT=0,", _atStr(serverName), ",", _atNum(port), ",", _atNum(keepAlive)),
             "+SQNSMQTTONCONNECT:0,", rsp, cb, args);
     _returnAfterReply();
 }
@@ -4717,6 +4726,8 @@ bool WalterModem::mqttDidRing(
             break;
         }
     }
+
+    ESP_LOGD("WalterModem", "Found ring for topic %s, ringIdx: %i, size: %i", topic, ringIdx, sizeof(_mqttRings) / sizeof(WalterModemMqttRing));
 
     if(ringIdx == sizeof(_mqttRings) / sizeof(WalterModemMqttRing)) {
         _returnState(WALTER_MODEM_STATE_NO_DATA);

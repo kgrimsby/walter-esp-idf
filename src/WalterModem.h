@@ -94,6 +94,11 @@
 #define WALTER_MODEM_BUFFER_POOL_SIZE 8
 
 /**
+ * @brief The size of the stack of the UART RX task
+ */
+#define WALTER_MODEM_TASK_UART_STACK_SIZE (1024 * 2)
+
+/**
  * @brief The size of the stack of the command and response processing task.
  */
 #define WALTER_MODEM_TASK_STACK_SIZE (1024 * 6)
@@ -2331,7 +2336,7 @@ class WalterModem
         static inline HardwareSerial *_uart = NULL;
 #else
         static inline uart_port_t _uartNo = UART_NUM_1;
-        static inline StackType_t _rxTaskStack[WALTER_MODEM_TASK_STACK_SIZE];
+        static inline StackType_t _rxTaskStack[WALTER_MODEM_TASK_UART_STACK_SIZE];
         static inline StaticTask_t _rxTaskBuf;
 #endif
 
@@ -3312,6 +3317,7 @@ class WalterModem
             const char *clientId = "walter-mqtt-client",
             const char *userName = "",
             const char *password = "",
+            uint16_t keepAlive = 60,
             uint8_t tlsProfileId = 0,
             WalterModemRsp *rsp = NULL,
             walterModemCb cb = NULL,
@@ -3364,6 +3370,11 @@ class WalterModem
             WalterModemRsp *rsp = NULL,
             walterModemCb cb = NULL,
             void *args = NULL);
+
+        static bool mqttFetchMessage(
+            const char *topic,
+            uint16_t message_id,
+            WalterModemRsp *rsp = NULL);
 
         /**
          * @brief Poll if there were incoming mqtt messages.
