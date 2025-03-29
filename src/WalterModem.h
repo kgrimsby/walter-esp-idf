@@ -4793,6 +4793,12 @@ class WalterModem
          */
         static void hardReset();
 
+        static void getFPLMN();
+
+        static void getCops();
+
+        static void getCpol();
+
         /**
          * @brief Configure UART1 (unconnected UART) to not include URC.
          * 

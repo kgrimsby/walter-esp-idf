@@ -5887,3 +5887,26 @@ void WalterModem::resetParser() {
 
     _parserData.state = WALTER_MODEM_RSP_PARSER_START_CR;
 }
+
+void WalterModem::getFPLMN() {
+    //AT+CRSM=176,28539,0,0,12
+    char *atCmd[WALTER_MODEM_COMMAND_MAX_ELEMS + 1] = { NULL };
+    atCmd[0] = (char *)"AT+CRSM=176,28539,0,0,12";
+    atCmd[1] = NULL;
+    _transmitCmd(WALTER_MODEM_CMD_TYPE_TX, atCmd);
+}
+
+void WalterModem::getCpol() {
+    char *atCmd[WALTER_MODEM_COMMAND_MAX_ELEMS + 1] = { NULL };
+    atCmd[0] = (char *)"AT+CPOL=?";
+    atCmd[1] = NULL;
+    _transmitCmd(WALTER_MODEM_CMD_TYPE_TX, atCmd);
+}
+
+void WalterModem::getCops() {
+    //AT+CRSM=176,28539,0,0,12
+    char *atCmd[WALTER_MODEM_COMMAND_MAX_ELEMS + 1] = { NULL };
+    atCmd[0] = (char *)"AT+COPS=?";
+    atCmd[1] = NULL;
+    _transmitCmd(WALTER_MODEM_CMD_TYPE_TX, atCmd);
+}
